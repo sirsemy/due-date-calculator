@@ -3,7 +3,9 @@
 namespace Tests\Unit;
 
 use App\Http\Controllers\DateCalculateController;
-use PHPUnit\Framework\TestCase;
+use DateTime;
+use Illuminate\Support\Carbon;
+use Tests\TestCase;
 
 class DateCalculateControllerTest extends TestCase
 {
@@ -12,9 +14,6 @@ class DateCalculateControllerTest extends TestCase
      */
     protected static DateCalculateController $calculateController;
 
-    /**
-     * @return void
-     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,7 +27,12 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testProblemReportedDuringWorkingHours()
     {
+        $this->dateTime->setDate(2022, 06, 24)->setTime(10, 10);
+        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
 
+        $functionResponse = self::$calculateController->isProblemReportedDuringWorkingHours($insertDateTime);
+
+        $this->assertTrue($functionResponse);
     }
 
     /**
@@ -37,7 +41,12 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testProblemReportedOutsideWorkingHours()
     {
+        $this->dateTime->setDate(2022, 06, 24)->setTime(07, 10);
+        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
 
+        $functionResponse = self::$calculateController->isProblemReportedDuringWorkingHours($insertDateTime);
+
+        $this->assertFalse($functionResponse);
     }
 
     /**
@@ -46,7 +55,12 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testProblemReportedOnWorkDays()
     {
+        $this->dateTime->setDate(2022, 06, 24)->setTime(07, 10);
+        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
 
+        $functionResponse = self::$calculateController->isProblemReportedOnWorkingDays($insertDateTime);
+
+        $this->assertTrue($functionResponse);
     }
 
     /**
@@ -55,25 +69,42 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testProblemReportedOnWeekendDays()
     {
+        $this->dateTime->setDate(2022, 06, 25)->setTime(13, 10);
+        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
 
+        $functionResponse = self::$calculateController->isProblemReportedOnWorkingDays($insertDateTime);
+
+        $this->assertFalse($functionResponse);
     }
 
     /**
      * @return void
-     * @see DateCalculateController::canProblemSolvableToday()
+     * @see DateCalculateController::canProblemSolvableSameDay()
      */
-    public function testProblemCanSolveToday()
+    public function testProblemCanSolveSameDay()
     {
+        $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
+        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $turnaroundTime = 3;
 
+        $functionResponse = self::$calculateController->canProblemSolvableSameDay($insertDateTime, $turnaroundTime);
+
+        $this->assertTrue($functionResponse);
     }
 
     /**
      * @return void
-     * @see DateCalculateController::canProblemSolvableToday()
+     * @see DateCalculateController::canProblemSolvableSameDay()
      */
     public function testProblemNeedsMoreTimeWhatIsAvailableToday()
     {
+        $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
+        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $turnaroundTime = 8;
 
+        $functionResponse = self::$calculateController->canProblemSolvableSameDay($insertDateTime, $turnaroundTime);
+
+        $this->assertFalse($functionResponse);
     }
 
     /**
@@ -82,7 +113,11 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testProblemNeedsLessTimeThanOneWorkday()
     {
+        $turnaroundTime = 7;
 
+        $functionResponse = self::$calculateController->checkProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
+
+        $this->assertTrue($functionResponse);
     }
 
     /**
@@ -91,7 +126,11 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testProblemNeedsMoreThanOneWorkday()
     {
+        $turnaroundTime = 12;
 
+        $functionResponse = self::$calculateController->checkProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
+
+        $this->assertFalse($functionResponse);
     }
 
     /**
@@ -100,7 +139,9 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testNextDayIsWeekendDay()
     {
+        $functionResponse = self::$calculateController->checkNextDayIsWeekendDay();
 
+        $this->assertTrue($functionResponse);
     }
 
     /**
@@ -109,7 +150,9 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testNextDayIsWorkingDay()
     {
+        $functionResponse = self::$calculateController->checkNextDayIsWeekendDay();
 
+        $this->assertFalse($functionResponse);
     }
 
     /**
@@ -118,6 +161,12 @@ class DateCalculateControllerTest extends TestCase
      */
     public function testCalculateMultipleWorkingDaysSuccess()
     {
-        $this->assertTrue(true);
+        $this->dateTime->setDate(2022, 06, 23)->setTime(13, 10);
+        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $turnaroundTime = 20;
+
+        $functionResponse = self::$calculateController->calculateMultipleWorkingDays($insertDateTime, $turnaroundTime);
+
+        $this->assertEquals('2022-06-29T09:10:00+01:00', $functionResponse);
     }
 }
