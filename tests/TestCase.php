@@ -4,6 +4,7 @@ namespace Tests;
 
 use App\Http\Controllers\DateCalculateController;
 use DateTime;
+use DateTimeImmutable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Carbon;
 
@@ -12,9 +13,9 @@ abstract class TestCase extends BaseTestCase
     use CreatesApplication;
 
     /**
-     * @var DateTime
+     * @var DateTimeImmutable
      */
-    protected DateTime $dateTime;
+    protected DateTimeImmutable $dateTime;
 
     /**
      * @return void
@@ -23,7 +24,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        $this->dateTime = new DateTime();
+        $this->dateTime = new DateTimeImmutable();
     }
 
     /**

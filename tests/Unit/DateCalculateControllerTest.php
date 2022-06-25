@@ -4,7 +4,9 @@ namespace Tests\Unit;
 
 use App\Http\Controllers\DateCalculateController;
 use DateTime;
+use DateTimeInterface;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class DateCalculateControllerTest extends TestCase
@@ -14,6 +16,9 @@ class DateCalculateControllerTest extends TestCase
      */
     protected static DateCalculateController $calculateController;
 
+    /**
+     * @return void
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -25,12 +30,11 @@ class DateCalculateControllerTest extends TestCase
      * @return void
      * @see DateCalculateController::isProblemReportedDuringWorkingHours()
      */
-    public function testProblemReportedDuringWorkingHours()
+    public function testProblemReportedDuringWorkingHours(): void
     {
-        $this->dateTime->setDate(2022, 06, 24)->setTime(10, 10);
-        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(10, 10);
 
-        $functionResponse = self::$calculateController->isProblemReportedDuringWorkingHours($insertDateTime);
+        $functionResponse = self::$calculateController->isProblemReportedDuringWorkingHours($dateValue);
 
         $this->assertTrue($functionResponse);
     }
@@ -39,12 +43,24 @@ class DateCalculateControllerTest extends TestCase
      * @return void
      * @see DateCalculateController::isProblemReportedDuringWorkingHours()
      */
-    public function testProblemReportedOutsideWorkingHours()
+    public function testProblemReportedOutsideWorkingHours(): void
     {
-        $this->dateTime->setDate(2022, 06, 24)->setTime(07, 10);
-        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(07, 10);
 
-        $functionResponse = self::$calculateController->isProblemReportedDuringWorkingHours($insertDateTime);
+        $functionResponse = self::$calculateController->isProblemReportedDuringWorkingHours($dateValue);
+
+        $this->assertFalse($functionResponse);
+    }
+
+    /**
+     * @return void
+     * @see DateCalculateController::isProblemReportedDuringWorkingHours()
+     */
+    public function testProblemReportedCoupleOfMinutesAfterWorkingHours(): void
+    {
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(17, 10);
+
+        $functionResponse = self::$calculateController->isProblemReportedDuringWorkingHours($dateValue);
 
         $this->assertFalse($functionResponse);
     }
@@ -53,12 +69,11 @@ class DateCalculateControllerTest extends TestCase
      * @return void
      * @see DateCalculateController::isProblemReportedOnWorkingDays()
      */
-    public function testProblemReportedOnWorkDays()
+    public function testProblemReportedOnWorkDays(): void
     {
-        $this->dateTime->setDate(2022, 06, 24)->setTime(07, 10);
-        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(07, 10);
 
-        $functionResponse = self::$calculateController->isProblemReportedOnWorkingDays($insertDateTime);
+        $functionResponse = self::$calculateController->isProblemReportedOnWorkingDays($dateValue);
 
         $this->assertTrue($functionResponse);
     }
@@ -67,12 +82,11 @@ class DateCalculateControllerTest extends TestCase
      * @return void
      * @see DateCalculateController::isProblemReportedOnWorkingDays()
      */
-    public function testProblemReportedOnWeekendDays()
+    public function testProblemReportedOnWeekendDays(): void
     {
-        $this->dateTime->setDate(2022, 06, 25)->setTime(13, 10);
-        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $dateValue = $this->dateTime->setDate(2022, 06, 25)->setTime(13, 10);
 
-        $functionResponse = self::$calculateController->isProblemReportedOnWorkingDays($insertDateTime);
+        $functionResponse = self::$calculateController->isProblemReportedOnWorkingDays($dateValue);
 
         $this->assertFalse($functionResponse);
     }
@@ -81,13 +95,12 @@ class DateCalculateControllerTest extends TestCase
      * @return void
      * @see DateCalculateController::canProblemSolvableSameDay()
      */
-    public function testProblemCanSolveSameDay()
+    public function testProblemCanSolveSameDay(): void
     {
-        $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
-        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
         $turnaroundTime = 3;
 
-        $functionResponse = self::$calculateController->canProblemSolvableSameDay($insertDateTime, $turnaroundTime);
+        $functionResponse = self::$calculateController->canProblemSolvableSameDay($dateValue, $turnaroundTime);
 
         $this->assertTrue($functionResponse);
     }
@@ -96,77 +109,191 @@ class DateCalculateControllerTest extends TestCase
      * @return void
      * @see DateCalculateController::canProblemSolvableSameDay()
      */
-    public function testProblemNeedsMoreTimeWhatIsAvailableToday()
+    public function testProblemNeedsMoreTimeWhatIsAvailableToday(): void
     {
-        $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
-        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
         $turnaroundTime = 8;
 
-        $functionResponse = self::$calculateController->canProblemSolvableSameDay($insertDateTime, $turnaroundTime);
+        $functionResponse = self::$calculateController->canProblemSolvableSameDay($this->dateTime, $turnaroundTime);
 
         $this->assertFalse($functionResponse);
     }
 
     /**
      * @return void
-     * @see DateCalculateController::checkProblemNeedsLessTimeThanOneWorkday()
+     * @see DateCalculateController::canProblemSolvableSameDay()
      */
-    public function testProblemNeedsLessTimeThanOneWorkday()
+    public function testProblemNeedsCoupleOfMinutesMoreTimeWhatIsAvailableToday(): void
+    {
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
+        $turnaroundTime = 4;
+
+        $functionResponse = self::$calculateController->canProblemSolvableSameDay($this->dateTime, $turnaroundTime);
+
+        $this->assertFalse($functionResponse);
+    }
+
+    /**
+     * @return void
+     * @see DateCalculateController::isProblemNeedsLessTimeThanOneWorkday()
+     */
+    public function testProblemNeedsLessTimeThanOneWorkday(): void
     {
         $turnaroundTime = 7;
 
-        $functionResponse = self::$calculateController->checkProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
+        $functionResponse = self::$calculateController->isProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
 
         $this->assertTrue($functionResponse);
     }
 
     /**
      * @return void
-     * @see DateCalculateController::checkProblemNeedsLessTimeThanOneWorkday()
+     * @see DateCalculateController::isProblemNeedsLessTimeThanOneWorkday()
      */
-    public function testProblemNeedsMoreThanOneWorkday()
+    public function testProblemNeedsMoreThanOneWorkday(): void
     {
         $turnaroundTime = 12;
 
-        $functionResponse = self::$calculateController->checkProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
+        $functionResponse = self::$calculateController->isProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
 
         $this->assertFalse($functionResponse);
     }
 
     /**
      * @return void
-     * @see DateCalculateController::checkNextDayIsWeekendDay()
+     * @see DateCalculateController::isNextDayIsWeekendDay()
      */
-    public function testNextDayIsWeekendDay()
+    public function testNextDayIsWeekendDay(): void
     {
-        $functionResponse = self::$calculateController->checkNextDayIsWeekendDay();
+        $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
+        $functionResponse = '';
+
+        try {
+            $functionResponse = self::$calculateController->isNextDayIsWeekendDay($dateValue);
+        } catch (\Exception $e) {
+            Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
+                $e->getMessage());
+        }
 
         $this->assertTrue($functionResponse);
     }
 
     /**
      * @return void
-     * @see DateCalculateController::checkNextDayIsWeekendDay()
+     * @see DateCalculateController::isNextDayIsWeekendDay()
      */
-    public function testNextDayIsWorkingDay()
+    public function testNextDayIsWorkingDay(): void
     {
-        $functionResponse = self::$calculateController->checkNextDayIsWeekendDay();
+        $dateValue = $this->dateTime->setDate(2022, 06, 22)->setTime(13, 10);
+        $functionResponse = '';
+
+        try {
+            $functionResponse = self::$calculateController->isNextDayIsWeekendDay($dateValue);
+        } catch (\Exception $e) {
+            Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
+                $e->getMessage());
+        }
 
         $this->assertFalse($functionResponse);
     }
 
     /**
      * @return void
+     *
      * @see DateCalculateController::calculateMultipleWorkingDays()
      */
-    public function testCalculateMultipleWorkingDaysSuccess()
+    public function testCalculateMultipleWorkingDaysSuccess(): void
     {
-        $this->dateTime->setDate(2022, 06, 23)->setTime(13, 10);
-        $insertDateTime = $this->dateTime->format('Y-m-d H:i:s');
+        $dateValue = $this->dateTime->setDate(2022, 06, 23)->setTime(13, 10);
+        $referenceDateTime = (new DateTime())::createFromFormat('Y-m-d H:i:s', '2022-06-28 9:10:00');
         $turnaroundTime = 20;
+        $isoDateTime = '';
 
-        $functionResponse = self::$calculateController->calculateMultipleWorkingDays($insertDateTime, $turnaroundTime);
+        try {
+            $functionResponse = self::$calculateController->calculateMultipleWorkingDays($dateValue, $turnaroundTime);
+            $isoDateTime = $functionResponse->format(DateTimeInterface::ATOM);
+        } catch (\Exception $e) {
+            Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
+                $e->getMessage());
+        }
 
-        $this->assertEquals('2022-06-29T09:10:00+01:00', $functionResponse);
+        $compare = $referenceDateTime->format(DateTimeInterface::ATOM);
+
+        $this->assertEquals($compare, $isoDateTime);
+    }
+
+    /**
+     * @return void
+     *
+     * @see DateCalculateController::calculateMultipleWorkingDays()
+     */
+    public function testCalculateMultipleWorkingDaysWithEndSameDaySolving(): void
+    {
+        $dateValue = $this->dateTime->setDate(2022, 06, 23)->setTime(13, 10);
+        $referenceDateTime = (new DateTime())::createFromFormat('Y-m-d H:i:s', '2022-06-27 16:10:00');
+        $turnaroundTime = 19;
+        $isoDateTime = '';
+
+        try {
+            $functionResponse = self::$calculateController->calculateMultipleWorkingDays($dateValue, $turnaroundTime);
+            $isoDateTime = $functionResponse->format(DateTimeInterface::ATOM);
+        } catch (\Exception $e) {
+            Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
+                $e->getMessage());
+        }
+
+        $compare = $referenceDateTime->format(DateTimeInterface::ATOM);
+
+        $this->assertEquals($compare, $isoDateTime);
+    }
+
+    /**
+     * @return void
+     *
+     * @see DateCalculateController::calculateMultipleWorkingDays()
+     */
+    public function testCalculateMultipleWorkingDaysEndsAfterNineAM(): void
+    {
+        $dateValue = $this->dateTime->setDate(2022, 06, 23)->setTime(13, 10);
+        $referenceDateTime = (new DateTime())::createFromFormat('Y-m-d H:i:s', '2022-06-28 10:10:00');
+        $turnaroundTime = 21;
+        $isoDateTime = '';
+
+        try {
+            $functionResponse = self::$calculateController->calculateMultipleWorkingDays($dateValue, $turnaroundTime);
+            $isoDateTime = $functionResponse->format(DateTimeInterface::ATOM);
+        } catch (\Exception $e) {
+            Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
+                $e->getMessage());
+        }
+
+        $compare = $referenceDateTime->format(DateTimeInterface::ATOM);
+
+        $this->assertEquals($compare, $isoDateTime);
+    }
+
+    /**
+     * @return void
+     *
+     * @see DateCalculateController::calculateMultipleWorkingDays()
+     */
+    public function testCalculateMultipleWorkingDaysRemainHours(): void
+    {
+        $dateValue = $this->dateTime->setDate(2022, 06, 22)->setTime(13, 10);
+        $referenceDateTime = (new DateTime())::createFromFormat('Y-m-d H:i:s', '2022-06-27 11:10:00');
+        $turnaroundTime = 22;
+        $isoDateTime = '';
+
+        try {
+            $functionResponse = self::$calculateController->calculateMultipleWorkingDays($dateValue, $turnaroundTime);
+            $isoDateTime = $functionResponse->format(DateTimeInterface::ATOM);
+        } catch (\Exception $e) {
+            Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
+                $e->getMessage());
+        }
+
+        $compare = $referenceDateTime->format(DateTimeInterface::ATOM);
+
+        $this->assertEquals($compare, $isoDateTime);
     }
 }
