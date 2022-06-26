@@ -7,10 +7,8 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Validator;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Routing\Annotation\Route;
 
 class DateCalculateController extends Controller
@@ -39,32 +37,61 @@ class DateCalculateController extends Controller
      */
     public function CalculateDueDate(Request $request): JsonResponse
     {
-
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'submit_time' => 'required|date',
-            'turnaround_time' => 'required|integer|min:1'
+        $validator = Validator::make($request->all(), [
+            'submit_time' => 'required|date|date_format:Y-m-d H:i:s',
+            'turnaround_time' => 'required|integer|min:1',
         ]);
 
         if ($validator->fails()) {
             $errorMessages = $validator->errors()->getMessages();
 
-            return \response('', 422)->json(['error' => $errorMessages]);
+            return response()->json(['error' => $errorMessages], 422);
         }
 
-        $this->isProblemReportedOnWorkingDays();
-        $this->isProblemReportedDuringWorkingHours();
-        $this->canProblemSolvableSameDay();
-        $this->isProblemNeedsLessTimeThanOneWorkday();
+        $submittedDate = $request->input('submit_time');
+        $turnaroundTime = $request->input('turnaround_time');
+
+        $dateTime = (new DateTimeImmutable())::createFromFormat('Y-m-d H:i:s', $submittedDate);
+
+        if (!$this->isProblemReportedOnWorkingDays($dateTime)) {
+            return response()->json(['error' =>
+                ['request_time' => "Report not allowed during weekend."]
+            ],
+                405
+            );
+        }
+
+        if (!$this->isProblemReportedDuringWorkingHours($dateTime)) {
+            return response()->json(['error' =>
+                ['request_time' => "Report not allowed out of working hours."]
+            ],
+                405
+            );
+        }
+
+        if ($this->canProblemSolvableSameDay($dateTime, $turnaroundTime)) {
+            try {
+                $calculatedDate = $dateTime->add(new \DateInterval('PT' . $turnaroundTime . 'H'));
+            } catch (\Exception $e) {
+                Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
+                    $e->getMessage());
+                return response()->json(['error' => ['core_error' => 'Calculation error occurred']], 400);
+            }
+
+            return response()->json(['data' => [
+                'due_date' => $calculatedDate->format(DateTimeInterface::ATOM),
+            ]], 200);
+        }
 
         try {
-            $calculatedDate = $this->calculateMultipleWorkingDays();
+            $calculatedDate = $this->calculateMultipleWorkingDays($dateTime, $turnaroundTime);
         } catch (\Exception $e) {
             Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                 $e->getMessage());
-            return \response()->json(['error' => 'Calculation error occurred']);
+            return response()->json(['error' => ['core_error' => 'Calculation error occurred']], 400);
         }
 
-        return \response()->json(['data' => [
+        return response()->json(['data' => [
             'due_date' => $calculatedDate->format(DateTimeInterface::ATOM),
         ]], 200);
     }
@@ -134,16 +161,6 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param int $turnaroundTime
-     *
-     * @return bool
-     */
-    public function isProblemNeedsLessTimeThanOneWorkday(int $turnaroundTime): bool
-    {
-        return $turnaroundTime < 8;
-    }
-
-    /**
      * @param DateTimeImmutable $submittedDateTime
      *
      * @return bool
@@ -179,6 +196,7 @@ class DateCalculateController extends Controller
 
         while ($workDaysAmount > 0) {
             $checkNextDayDateTime = (new DateTimeImmutable())::createFromMutable($calculateDate);
+
             if ($this->isNextDayIsWeekendDay($checkNextDayDateTime)) {
                 $calculateDate->add(new \DateInterval('P3D'));
                 $workDaysAmount--;

@@ -114,7 +114,7 @@ class DateCalculateControllerTest extends TestCase
         $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
         $turnaroundTime = 8;
 
-        $functionResponse = self::$calculateController->canProblemSolvableSameDay($this->dateTime, $turnaroundTime);
+        $functionResponse = self::$calculateController->canProblemSolvableSameDay($dateValue, $turnaroundTime);
 
         $this->assertFalse($functionResponse);
     }
@@ -128,33 +128,7 @@ class DateCalculateControllerTest extends TestCase
         $dateValue = $this->dateTime->setDate(2022, 06, 24)->setTime(13, 10);
         $turnaroundTime = 4;
 
-        $functionResponse = self::$calculateController->canProblemSolvableSameDay($this->dateTime, $turnaroundTime);
-
-        $this->assertFalse($functionResponse);
-    }
-
-    /**
-     * @return void
-     * @see DateCalculateController::isProblemNeedsLessTimeThanOneWorkday()
-     */
-    public function testProblemNeedsLessTimeThanOneWorkday(): void
-    {
-        $turnaroundTime = 7;
-
-        $functionResponse = self::$calculateController->isProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
-
-        $this->assertTrue($functionResponse);
-    }
-
-    /**
-     * @return void
-     * @see DateCalculateController::isProblemNeedsLessTimeThanOneWorkday()
-     */
-    public function testProblemNeedsMoreThanOneWorkday(): void
-    {
-        $turnaroundTime = 12;
-
-        $functionResponse = self::$calculateController->isProblemNeedsLessTimeThanOneWorkday($turnaroundTime);
+        $functionResponse = self::$calculateController->canProblemSolvableSameDay($dateValue, $turnaroundTime);
 
         $this->assertFalse($functionResponse);
     }
