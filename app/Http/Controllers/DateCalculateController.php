@@ -97,9 +97,12 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param DateTimeImmutable $submittedDateTime
+     * Check whether the user reported issue on weekend days.
      *
-     * @return bool
+     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
+     *  submit date.
+     *
+     * @return bool Return with true or false value.
      */
     public function isProblemReportedOnWorkingDays(DateTimeImmutable $submittedDateTime): bool
     {
@@ -113,9 +116,12 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param DateTimeImmutable $submittedDateTime
+     * Check whether the user reported issue out of working hours. Before or after.
      *
-     * @return bool
+     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
+     *  submit date.
+     *
+     * @return bool Return with true or false value.
      */
     public function isProblemReportedDuringWorkingHours(DateTimeImmutable $submittedDateTime): bool
     {
@@ -138,10 +144,11 @@ class DateCalculateController extends Controller
     /**
      * Check whether are there enough time to solve the issue today.
      *
-     * @param DateTimeImmutable $submittedDateTime
-     * @param int $turnaroundTime
+     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
+     *  submit date.
+     * @param int $turnaroundTime The integer value from user. The number how many hours should need solve the issue.
      *
-     * @return bool
+     * @return bool Return with true or false value.
      */
     public function canProblemSolvableSameDay(DateTimeImmutable $submittedDateTime, int $turnaroundTime): bool
     {
@@ -161,9 +168,12 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param DateTimeImmutable $submittedDateTime
+     * Check whether the next day is Saturday.
      *
-     * @return bool
+     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
+     *  submit date.
+     *
+     * @return bool Return with true or false value.
      *
      * @throws \Exception
      */
@@ -179,10 +189,11 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param DateTimeImmutable $submittedDateTime
-     * @param int $turnaroundTime
+     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
+     *  submit date.
+     * @param int $turnaroundTime The integer value from user. The number how many hours should need solve the issue.
      *
-     * @return DateTime
+     * @return DateTime It must be return with DateTime object for the easy convert to ISO date format.
      *
      * @throws \Exception
      */
