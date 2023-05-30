@@ -35,7 +35,7 @@ class DateCalculateController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function CalculateDueDate(Request $request): JsonResponse
+    public function CalculateTaskFinishDateTime(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'submit_time' => 'required|date|date_format:Y-m-d H:i:s',

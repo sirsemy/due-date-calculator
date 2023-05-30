@@ -12,11 +12,11 @@ use Tests\TestCase;
 class DueDateCalculatorTest extends TestCase
 {
     /**
-     * @see DateCalculateController::CalculateDueDate()
+     * @return void
+     *@see DateCalculateController::CalculateTaskFinishDateTime()
      *
      * GET /due_date
      *
-     * @return void
      */
     public function test_calculator_returns_a_successful_response(): void
     {
@@ -32,7 +32,7 @@ class DueDateCalculatorTest extends TestCase
 
     /**
      * @return void
-     * @see DateCalculateController::CalculateDueDate()
+     * @see DateCalculateController::CalculateTaskFinishDateTime()
      *
      * GET /due_date
      */
@@ -84,7 +84,7 @@ class DueDateCalculatorTest extends TestCase
 
     /**
      * @return void
-     * @see DateCalculateController::CalculateDueDate()
+     * @see DateCalculateController::CalculateTaskFinishDateTime()
      *
      * GET /due_date
      */
@@ -121,7 +121,7 @@ class DueDateCalculatorTest extends TestCase
 
     /**
      * @return void
-     * @see DateCalculateController::CalculateDueDate()
+     * @see DateCalculateController::CalculateTaskFinishDateTime()
      *
      * GET /due_date
      */
@@ -161,7 +161,7 @@ class DueDateCalculatorTest extends TestCase
 
     /**
      * @return void
-     * @see DateCalculateController::CalculateDueDate()
+     * @see DateCalculateController::CalculateTaskFinishDateTime()
      *
      * GET /due_date
      */

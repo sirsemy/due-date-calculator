@@ -15,4 +15,4 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/due_date', [DateCalculateController::class, 'CalculateDueDate']);
+Route::get('/due_date', [DateCalculateController::class, 'CalculateTaskFinishDateTime']);
