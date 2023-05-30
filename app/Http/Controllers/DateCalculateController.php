@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\CalculationException;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -54,19 +55,11 @@ class DateCalculateController extends Controller
         $dateTime = (new DateTimeImmutable())::createFromFormat('Y-m-d H:i:s', $submittedDate);
 
         if (!$this->isProblemReportedOnWorkingDays($dateTime)) {
-            return response()->json(['error' =>
-                ['request_time' => "Report not allowed during weekend."]
-            ],
-                405
-            );
+            return CalculationException::return405JsonError("Report not allowed during weekend.");
         }
 
         if (!$this->isProblemReportedDuringWorkingHours($dateTime)) {
-            return response()->json(['error' =>
-                ['request_time' => "Report not allowed out of working hours."]
-            ],
-                405
-            );
+            return CalculationException::return405JsonError("Report not allowed out of working hours.");
         }
 
         if ($this->canProblemSolvableSameDay($dateTime, $turnaroundTime)) {
@@ -75,7 +68,7 @@ class DateCalculateController extends Controller
             } catch (\Exception $e) {
                 Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                     $e->getMessage());
-                return response()->json(['error' => ['core_error' => 'Calculation error occurred']], 400);
+                return CalculationException::return400JsonError('Calculation error occurred');
             }
 
             return response()->json(['data' => [
@@ -88,7 +81,7 @@ class DateCalculateController extends Controller
         } catch (\Exception $e) {
             Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                 $e->getMessage());
-            return response()->json(['error' => ['core_error' => 'Calculation error occurred']], 400);
+            return CalculationException::return400JsonError('Calculation error occurred');
         }
 
         return response()->json(['data' => [
