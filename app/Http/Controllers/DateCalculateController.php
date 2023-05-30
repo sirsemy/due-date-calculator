@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\CalculationException;
+use App\Http\RouteParameterValidator;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -21,6 +22,20 @@ class DateCalculateController extends Controller
      */
     private const STARTING_WORK_HOUR = 9;
 
+    private Request $controllerRequest;
+
+    private \Illuminate\Validation\Validator $validator;
+
+    public function getContollerRequest()
+    {
+        return $this->controllerRequest;
+    }
+
+    public function setValidator(\Illuminate\Validation\Validator $validationResult)
+    {
+        $this->validator = $validationResult;
+    }
+
     /**
      * Number value when finishing work on working days in the afternoon.
      *
@@ -38,15 +53,12 @@ class DateCalculateController extends Controller
      */
     public function CalculateTaskFinishDateTime(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'submit_time' => 'required|date|date_format:Y-m-d H:i:s',
-            'turnaround_time' => 'required|integer|min:1',
-        ]);
+        $this->controllerRequest = $request;
 
-        if ($validator->fails()) {
-            $errorMessages = $validator->errors()->getMessages();
+        RouteParameterValidator::setParameterValidationResult($this);
 
-            return response()->json(['error' => $errorMessages], 422);
+        if ($this->validator->fails()) {
+            return response()->json(['error' => $this->validator->errors()->getMessages()], 422);
         }
 
         $submittedDate = $request->input('submit_time');
