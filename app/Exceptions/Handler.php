@@ -3,7 +3,11 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response as Response;
 use Throwable;
+use App\Exceptions\CalculationException;
 
 class Handler extends ExceptionHandler
 {
@@ -43,8 +47,16 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
-        $this->reportable(function (Throwable $e) {
-            //
+        $this->renderable(function (CalculationException $e) {
+            return response()->json(
+                ['error' => $e->getMessage()], $e->getCode()
+            );
+        });
+
+        $this->renderable(function (ValidationException $e) {
+            return response()->json(
+                ['error' => $e->errors()], $e->status
+            );
         });
     }
 }

@@ -112,9 +112,7 @@ class DueDateCalculatorTest extends TestCase
                     'turnaround_time' => $value['turnaround_time'],
                 ]
             )->assertJson([
-                "error" => [
-                    "request_time" => $value['message']
-                ]
+                "error" => $value['message']
             ]);
         }
     }

@@ -8,45 +8,27 @@ use Symfony\Component\HttpFoundation\Response as Response;
 
 class CalculationException extends Exception
 {
-    /**
-     * @param string $message
-     * @param DateCalculateController $dc
-     * @return void
-     */
-    public static function compose405ErrorMessage(string $message, DateCalculateController $dc): void
+    public function __construct(private ExceptionCase $errorCase,
+                                DateCalculateController $dc = new DateCalculateController())
     {
-        $response = response()->json(['error' =>
-                ['request_time' => $message]
-            ],
-            Response::HTTP_METHOD_NOT_ALLOWED
-        );
+        parent::__construct();
 
-        $dc->setRouteResponse($response);
+        match ($errorCase) {
+            ExceptionCase::CalculationError => $this->set400ErrorMessage(),
+            ExceptionCase::WeekendReport => $this->set405ErrorMessage("Report not allowed during weekend."),
+            ExceptionCase::OutOfWorkingHours => $this->set405ErrorMessage("Report not allowed out of working hours."),
+        };
     }
 
-    /**
-     * @param DateCalculateController $dc
-     * @return void
-     */
-    public static function compose400ErrorMessage(DateCalculateController $dc): void
+    private function set405ErrorMessage(string $errorMessage): void
     {
-        $response = response()->json(['error' =>
-                ['core_error' => 'Calculation error occurred']
-            ], Response::HTTP_BAD_REQUEST
-        );
-
-        $dc->setRouteResponse($response);
+        $this->message = $errorMessage;
+        $this->code = Response::HTTP_METHOD_NOT_ALLOWED;
     }
 
-    /**
-     * @param DateCalculateController $dc
-     * @return void
-     */
-    public static function composeParamValidationErrorMessage(DateCalculateController $dc): void
+    private function set400ErrorMessage(): void
     {
-        $response = response()->json(['error' => $dc->getValidator()->errors()->getMessages()]
-                , Response::HTTP_UNPROCESSABLE_ENTITY);
-
-        $dc->setRouteResponse($response);
+        $this->message = 'Calculation error occurred';
+        $this->code = Response::HTTP_BAD_REQUEST;
     }
 }

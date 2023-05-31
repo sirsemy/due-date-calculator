@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\CalculationException;
+use App\Exceptions\ExceptionCase;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\Routing\Annotation\Route;
 
 class DateCalculateController extends Controller
@@ -29,10 +30,8 @@ class DateCalculateController extends Controller
      */
     private const FINISHING_WORK_HOUR = 17;
 
-    private Request $controllerRequest;
     private JsonResponse $routeResponse;
     private DateTimeImmutable|DateTime $calculatedDate;
-    private \Illuminate\Validation\Validator $validator;
 
     private string $submittedDate;
     private int $turnaroundTime;
@@ -44,20 +43,12 @@ class DateCalculateController extends Controller
      *
      * @param Request $request
      * @return JsonResponse
+     * @throws CalculationException
+     * @throws ValidationException
      */
     public function CalculateTaskFinishDateTime(Request $request): JsonResponse
     {
-        $this->controllerRequest = $request;
-
-        $this->setParameterValidationResult();
-
-        if ($this->validator->fails()) {
-            CalculationException::composeParamValidationErrorMessage($this);
-
-            return $this->routeResponse;
-        }
-
-        unset($this->controllerRequest);
+        $this->validateParameters($request);
 
         $this->submittedDate = $request->input('submit_time');
         $this->turnaroundTime = $request->input('turnaround_time');
@@ -65,15 +56,11 @@ class DateCalculateController extends Controller
         $dateTime = (new DateTimeImmutable())::createFromFormat('Y-m-d H:i:s', $this->submittedDate);
 
         if (!$this->isProblemReportedOnWorkingDays($dateTime)) {
-            CalculationException::compose405ErrorMessage("Report not allowed during weekend.", $this);
-
-            return $this->routeResponse;
+            throw new CalculationException(ExceptionCase::WeekendReport);
         }
 
         if (!$this->isProblemReportedDuringWorkingHours($dateTime)) {
-            CalculationException::compose405ErrorMessage("Report not allowed out of working hours.", $this);
-
-            return $this->routeResponse;
+            throw new CalculationException(ExceptionCase::OutOfWorkingHours);
         }
 
         if ($this->canProblemSolvableSameDay($dateTime, $this->turnaroundTime)) {
@@ -82,9 +69,7 @@ class DateCalculateController extends Controller
             } catch (\Exception $e) {
                 Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                     $e->getMessage());
-                CalculationException::compose400ErrorMessage($this);
-
-                return $this->routeResponse;
+                throw new CalculationException(ExceptionCase::CalculationError);
             }
 
             $this->composeSuccessResponse();
@@ -97,9 +82,7 @@ class DateCalculateController extends Controller
         } catch (\Exception $e) {
             Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                 $e->getMessage());
-            CalculationException::compose400ErrorMessage($this);
-
-            return $this->routeResponse;
+            throw new CalculationException(ExceptionCase::CalculationError);
         }
 
         $this->composeSuccessResponse();
@@ -108,27 +91,18 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @return \Illuminate\Validation\Validator
+     * @throws ValidationException
      */
-    public function getValidator(): \Illuminate\Validation\Validator
+    private function validateParameters(Request $request): void
     {
-        return $this->validator;
-    }
-
-    /**
-     * @param JsonResponse $routeResponse
-     */
-    public function setRouteResponse(JsonResponse $routeResponse): void
-    {
-        $this->routeResponse = $routeResponse;
-    }
-
-    private function setParameterValidationResult(): void
-    {
-        $this->validator = Validator::make($this->controllerRequest->all(), [
+        $validator = Validator::make($request->all(), [
             'submit_time' => 'required|date|date_format:Y-m-d H:i:s',
             'turnaround_time' => 'required|integer|min:1',
         ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
     }
 
     /**
