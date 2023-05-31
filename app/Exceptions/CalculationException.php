@@ -4,7 +4,6 @@ namespace App\Exceptions;
 
 use App\Http\Controllers\DateCalculateController;
 use Exception;
-use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response as Response;
 
 class CalculationException extends Exception
@@ -16,13 +15,13 @@ class CalculationException extends Exception
      */
     public static function compose405ErrorMessage(string $message, DateCalculateController $dc): void
     {
-        $routeResponse = response()->json(['error' =>
+        $response = response()->json(['error' =>
                 ['request_time' => $message]
             ],
             Response::HTTP_METHOD_NOT_ALLOWED
         );
 
-        $dc->setRouteResponse($routeResponse);
+        $dc->setRouteResponse($response);
     }
 
     /**
@@ -31,12 +30,12 @@ class CalculationException extends Exception
      */
     public static function compose400ErrorMessage(DateCalculateController $dc): void
     {
-        $routeResponse = response()->json(['error' =>
+        $response = response()->json(['error' =>
                 ['core_error' => 'Calculation error occurred']
             ], Response::HTTP_BAD_REQUEST
         );
 
-        $dc->setRouteResponse($routeResponse);
+        $dc->setRouteResponse($response);
     }
 
     /**
@@ -45,9 +44,9 @@ class CalculationException extends Exception
      */
     public static function composeParamValidationErrorMessage(DateCalculateController $dc): void
     {
-        $routeResponse = response()->json(['error' => $dc->getValidator()->errors()->getMessages()]
+        $response = response()->json(['error' => $dc->getValidator()->errors()->getMessages()]
                 , Response::HTTP_UNPROCESSABLE_ENTITY);
 
-        $dc->setRouteResponse($routeResponse);
+        $dc->setRouteResponse($response);
     }
 }

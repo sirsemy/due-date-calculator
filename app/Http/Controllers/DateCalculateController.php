@@ -9,6 +9,7 @@ use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -29,10 +30,12 @@ class DateCalculateController extends Controller
     private const FINISHING_WORK_HOUR = 17;
 
     private Request $controllerRequest;
-
+    private JsonResponse $routeResponse;
+    private DateTimeImmutable|DateTime $calculatedDate;
     private \Illuminate\Validation\Validator $validator;
 
-    private JsonResponse $routeResponse;
+    private string $submittedDate;
+    private int $turnaroundTime;
 
     /**
      * Calculate due date from submitted date and turnaround time.
@@ -56,10 +59,10 @@ class DateCalculateController extends Controller
 
         unset($this->controllerRequest);
 
-        $submittedDate = $request->input('submit_time');
-        $turnaroundTime = $request->input('turnaround_time');
+        $this->submittedDate = $request->input('submit_time');
+        $this->turnaroundTime = $request->input('turnaround_time');
 
-        $dateTime = (new DateTimeImmutable())::createFromFormat('Y-m-d H:i:s', $submittedDate);
+        $dateTime = (new DateTimeImmutable())::createFromFormat('Y-m-d H:i:s', $this->submittedDate);
 
         if (!$this->isProblemReportedOnWorkingDays($dateTime)) {
             CalculationException::compose405ErrorMessage("Report not allowed during weekend.", $this);
@@ -73,9 +76,9 @@ class DateCalculateController extends Controller
             return $this->routeResponse;
         }
 
-        if ($this->canProblemSolvableSameDay($dateTime, $turnaroundTime)) {
+        if ($this->canProblemSolvableSameDay($dateTime, $this->turnaroundTime)) {
             try {
-                $calculatedDate = $dateTime->add(new \DateInterval('PT' . $turnaroundTime . 'H'));
+                $this->calculatedDate = $dateTime->add(new \DateInterval('PT' . $this->turnaroundTime . 'H'));
             } catch (\Exception $e) {
                 Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                     $e->getMessage());
@@ -84,13 +87,13 @@ class DateCalculateController extends Controller
                 return $this->routeResponse;
             }
 
-            return response()->json(['data' => [
-                'due_date' => $calculatedDate->format(DateTimeInterface::ATOM),
-            ]], 200);
+            $this->composeSuccessResponse();
+
+            return $this->routeResponse;
         }
 
         try {
-            $calculatedDate = $this->calculateMultipleWorkingDays($dateTime, $turnaroundTime);
+            $this->calculatedDate = $this->calculateMultipleWorkingDays($dateTime, $this->turnaroundTime);
         } catch (\Exception $e) {
             Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                 $e->getMessage());
@@ -99,9 +102,9 @@ class DateCalculateController extends Controller
             return $this->routeResponse;
         }
 
-        return response()->json(['data' => [
-            'due_date' => $calculatedDate->format(DateTimeInterface::ATOM),
-        ]], 200);
+        $this->composeSuccessResponse();
+
+        return $this->routeResponse;
     }
 
     /**
@@ -271,5 +274,15 @@ class DateCalculateController extends Controller
         }
 
         return $calculateDate->add(new \DateInterval('PT' . $remainHour . 'H'));
+    }
+
+    /**
+     * @return void
+     */
+    private function composeSuccessResponse(): void
+    {
+        $this->routeResponse = response()->json(['data' => [
+            'due_date' => $this->calculatedDate->format(DateTimeInterface::ATOM),
+        ]], \Symfony\Component\HttpFoundation\Response::HTTP_OK);
     }
 }
