@@ -113,7 +113,7 @@ class DateCalculateController extends Controller
      *
      * @return bool Return with true or false value.
      */
-    public function isProblemReportedOnWorkingDays(DateTimeImmutable $submittedDateTime): bool
+    private function isProblemReportedOnWorkingDays(DateTimeImmutable $submittedDateTime): bool
     {
         $examineDay = (int)$submittedDateTime->format('N');
 
@@ -132,7 +132,7 @@ class DateCalculateController extends Controller
      *
      * @return bool Return with true or false value.
      */
-    public function isProblemReportedDuringWorkingHours(DateTimeImmutable $submittedDateTime): bool
+    private function isProblemReportedDuringWorkingHours(DateTimeImmutable $submittedDateTime): bool
     {
         $examineHour = (int)$submittedDateTime->format('H');
         $examineMinute = (int)$submittedDateTime->format('i');
