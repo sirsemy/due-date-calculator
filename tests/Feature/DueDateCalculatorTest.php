@@ -88,7 +88,7 @@ class DueDateCalculatorTest extends TestCase
      *
      * GET /due_date
      */
-    public function test_calculator_returns_with_error_response(): void
+    public function test_request_out_of_allowed_time(): void
     {
         $failureValues = [
             'weekendReport' => [
