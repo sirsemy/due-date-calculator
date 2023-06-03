@@ -17,13 +17,13 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class DateCalculateController extends Controller
 {
-    private const STARTING_WORK_HOUR = 9;
-    private const FINISHING_WORK_HOUR = 17;
-    private const WORKING_HOURS_PER_DAY = 8;
+    public const WEEK_DAY_FORMAT = 'N';
+    public const HOUR_MINUTE_FORMAT = 'H:i';
+    public const STARTING_WORK_HOUR = 9;
+    public const FINISHING_WORK_HOUR = 17;
+    public const WORKING_HOURS_PER_DAY = 8;
 
     private const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
-    private const WEEK_DAY_FORMAT = 'N';
-    private const HOUR_MINUTE_FORMAT = 'H:i';
 
     private JsonResponse $routeResponse;
     private DateTimeImmutable|DateTime $calculatedDate;
@@ -109,10 +109,12 @@ class DateCalculateController extends Controller
      */
     private function runCalculation(): void
     {
+        $calculator = new CalculateTimeDemand($this);
+
         if ($this->canProblemSolvableSameDay()) {
-            CalculateTimeDemand::calculateSameDayTime($this);
+            $calculator->calculateSameDayTime();
         } else {
-            CalculateTimeDemand::calculateMultipleDaysTime($this);
+            $calculator->calculateMultipleDaysTime();
         }
 
         $this->composeSuccessResponse();
@@ -146,54 +148,6 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param int $estimatedTime The integer value from user. The number how many hours should need solve the issue.
-     *
-     * @return DateTime
-     *
-     * @throws Exception
-     */
-    public function calculateMultipleWorkingDays(int $estimatedTime): DateTime
-    {
-        $calculateDate = (new DateTime())::createFromImmutable($this->submittedDateTime);
-        $submittedHour = (int)$this->submittedDateTime->format('H');
-        $submittedMinutes = (int)$this->submittedDateTime->format('i');
-        $workDaysAmount = intdiv($estimatedTime, self::WORKING_HOURS_PER_DAY);
-        $remainHour = $estimatedTime % self::WORKING_HOURS_PER_DAY;
-
-        while ($workDaysAmount > 0) {
-            if ($this->isNextDayIsWeekendDay($calculateDate)) {
-                $calculateDate->add(new \DateInterval('P3D'));
-                $workDaysAmount--;
-                continue;
-            }
-
-            $calculateDate->add(new \DateInterval('P1D'));
-            $workDaysAmount--;
-        }
-
-        $this->submittedDateTime = (new DateTimeImmutable())::createFromMutable($calculateDate);
-        $this->estimatedTime = $remainHour;
-
-        if ($remainHour && $this->canProblemSolvableSameDay()) {
-            return $calculateDate->add(new \DateInterval('PT' . $remainHour . 'H'));
-        }
-
-        if ($this->isNextDayIsWeekendDay($calculateDate)) {
-            $calculateDate->add(new \DateInterval('P3D'))->setTime(self::STARTING_WORK_HOUR, $submittedMinutes);
-        } else {
-            $calculateDate->add(new \DateInterval('P1D'))->setTime(self::STARTING_WORK_HOUR, $submittedMinutes);
-        }
-
-        $remainHour = ($submittedHour + $remainHour) - self::FINISHING_WORK_HOUR;
-
-        if (empty($remainHour) || $remainHour < 0) {
-            return $calculateDate;
-        }
-
-        return $calculateDate->add(new \DateInterval('PT' . $remainHour . 'H'));
-    }
-
-    /**
      * @return void
      */
     private function composeSuccessResponse(): void
@@ -217,6 +171,22 @@ class DateCalculateController extends Controller
     public function getEstimatedTime(): int
     {
         return $this->estimatedTime;
+    }
+
+    /**
+     * @param int $estimatedTime
+     */
+    public function setEstimatedTime(int $estimatedTime): void
+    {
+        $this->estimatedTime = $estimatedTime;
+    }
+
+    /**
+     * @param DateTimeImmutable $submittedDateTime
+     */
+    public function setSubmittedDateTime(DateTimeImmutable $submittedDateTime): void
+    {
+        $this->submittedDateTime = $submittedDateTime;
     }
 
     /**
