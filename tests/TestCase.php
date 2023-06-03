@@ -12,10 +12,7 @@ abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication;
 
-    /**
-     * @var DateTimeImmutable
-     */
-    protected DateTimeImmutable $dateTime;
+    protected DateTime $dateTime;
 
     /**
      * @return void
@@ -24,7 +21,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        $this->dateTime = new DateTimeImmutable();
+        $this->dateTime = new DateTime();
     }
 
     /**

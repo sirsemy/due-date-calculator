@@ -8,24 +8,18 @@ use App\Http\Helpers\CalculateTimeDemand;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\Routing\Annotation\Route;
 
 class DateCalculateController extends Controller
 {
-    /**
-     * @var int
-     */
     private const STARTING_WORK_HOUR = 9;
-
-    /**
-     * @var int
-     */
     private const FINISHING_WORK_HOUR = 17;
+    private const WORKING_HOURS_PER_DAY = 8;
 
     private const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
     private const WEEK_DAY_FORMAT = 'N';
@@ -33,12 +27,12 @@ class DateCalculateController extends Controller
 
     private JsonResponse $routeResponse;
     private DateTimeImmutable|DateTime $calculatedDate;
-    private DateTimeImmutable|DateTime $submittedDateTime;
+    private DateTimeImmutable $submittedDateTime;
 
-    private int $turnaroundTime;
+    private int $estimatedTime;
 
     /**
-     * Calculate due date from submitted date and turnaround time.
+     * Calculate due date from submitted date and estimated time.
      *
      * @Route("/due_date", methods={"GET"})
      *
@@ -46,30 +40,21 @@ class DateCalculateController extends Controller
      * @return JsonResponse
      * @throws CalculationException
      * @throws ValidationException
+     * @throws Exception
      */
     public function CalculateTaskFinishDateTime(Request $request): JsonResponse
     {
         $this->validateParameters($request);
 
         $submittedDate = $request->input('submit_time');
-        $this->turnaroundTime = $request->input('turnaround_time');
+        $this->estimatedTime = $request->input('estimated_time');
 
         $this->submittedDateTime = (new DateTimeImmutable())::createFromFormat(self::DATE_TIME_FORMAT, $submittedDate);
 
-        $this->checkProblemReportedOnWorkingDays($this->submittedDateTime);
-        $this->checkProblemReportedDuringWorkingHours($this->submittedDateTime);
+        $this->checkProblemReportedOnWorkingDays();
+        $this->checkProblemReportedDuringWorkingHours();
 
-        if ($this->canProblemSolvableSameDay($this->submittedDateTime, $this->turnaroundTime)) {
-            CalculateTimeDemand::calculateSameDayTime($this);
-
-            $this->composeSuccessResponse();
-
-            return $this->routeResponse;
-        }
-
-        CalculateTimeDemand::calculateMultipleDaysTime($this);
-
-        $this->composeSuccessResponse();
+        $this->runCalculation();
 
         return $this->routeResponse;
     }
@@ -81,7 +66,7 @@ class DateCalculateController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'submit_time' => 'required|date|date_format:Y-m-d H:i:s',
-            'turnaround_time' => 'required|integer|min:1',
+            'estimated_time' => 'required|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -90,14 +75,11 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
-     *  submit date.
-     *
      * @throws CalculationException
      */
-    private function checkProblemReportedOnWorkingDays(DateTimeImmutable $submittedDateTime): void
+    private function checkProblemReportedOnWorkingDays(): void
     {
-        $examineDay = (int)$submittedDateTime->format(self::WEEK_DAY_FORMAT);
+        $examineDay = (int)$this->submittedDateTime->format(self::WEEK_DAY_FORMAT);
 
         if ($examineDay >= 6) {
             throw new CalculationException(ExceptionCase::WeekendReport);
@@ -105,14 +87,11 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
-     *  submit date.
-     *
      * @throws CalculationException
      */
-    private function checkProblemReportedDuringWorkingHours(DateTimeImmutable $submittedDateTime): void
+    private function checkProblemReportedDuringWorkingHours(): void
     {
-        $submittedTime = $submittedDateTime->format(self::HOUR_MINUTE_FORMAT);
+        $submittedTime = $this->submittedDateTime->format(self::HOUR_MINUTE_FORMAT);
 
         $startTime = (new DateTime())->setTime(self::STARTING_WORK_HOUR, 0)
             ->format(self::HOUR_MINUTE_FORMAT);
@@ -125,25 +104,41 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * Check whether are there enough time to solve the issue today.
-     *
-     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
-     *  submit date.
-     * @param int $turnaroundTime The integer value from user. The number how many hours should need solve the issue.
-     *
-     * @return bool Return with true or false value.
+     * @throws CalculationException
+     * @throws Exception
      */
-    public function canProblemSolvableSameDay(DateTimeImmutable $submittedDateTime, int $turnaroundTime): bool
+    private function runCalculation(): void
     {
-        $examineHour = (int)$submittedDateTime->format('H');
-        $examineMinute = (int)$submittedDateTime->format('i');
-        $summaTime = $examineHour + $turnaroundTime;
+        if ($this->canProblemSolvableSameDay()) {
+            CalculateTimeDemand::calculateSameDayTime($this);
+        } else {
+            CalculateTimeDemand::calculateMultipleDaysTime($this);
+        }
 
-        if ($summaTime <= self::FINISHING_WORK_HOUR) {
-            if ($summaTime === self::FINISHING_WORK_HOUR && $examineMinute !== 0) {
-                return false;
-            }
+        $this->composeSuccessResponse();
+    }
 
+    /**
+     * @throws Exception
+     */
+    public function canProblemSolvableSameDay(): bool
+    {
+        $summaDate = $this->submittedDateTime->add(new \DateInterval('PT' . $this->estimatedTime . 'H'));
+        $finishTime = $this->submittedDateTime->setTime(self::FINISHING_WORK_HOUR, 0);
+
+        if ($summaDate > $finishTime) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function isNextDayIsWeekendDay(DateTime $dt): bool
+    {
+        if ($dt->format(self::WEEK_DAY_FORMAT) >= 5) {
             return true;
         }
 
@@ -151,47 +146,22 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * Check whether the next day is Saturday.
+     * @param int $estimatedTime The integer value from user. The number how many hours should need solve the issue.
      *
-     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
-     *  submit date.
+     * @return DateTime
      *
-     * @return bool Return with true or false value.
-     *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function isNextDayIsWeekendDay(DateTimeImmutable $submittedDateTime): bool
+    public function calculateMultipleWorkingDays(int $estimatedTime): DateTime
     {
-        $nextDay = $submittedDateTime->add(new \DateInterval('P1D'));
-
-        if ($nextDay->format(self::WEEK_DAY_FORMAT) >= 6) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param DateTimeImmutable $submittedDateTime This DateTime must be immutable because we need protect the original
-     *  submit date.
-     * @param int $turnaroundTime The integer value from user. The number how many hours should need solve the issue.
-     *
-     * @return DateTime It must be return with DateTime object for the easy convert to ISO date format.
-     *
-     * @throws \Exception
-     */
-    public function calculateMultipleWorkingDays(DateTimeImmutable $submittedDateTime, int $turnaroundTime): DateTime
-    {
-        $calculateDate = (new DateTime())::createFromImmutable($submittedDateTime);
-        $submittedHour = (int)$submittedDateTime->format('H');
-        $submittedMinutes = (int)$submittedDateTime->format('i');
-        $workDaysAmount = intdiv($turnaroundTime, 8);
-        $remainHour = $turnaroundTime % 8;
+        $calculateDate = (new DateTime())::createFromImmutable($this->submittedDateTime);
+        $submittedHour = (int)$this->submittedDateTime->format('H');
+        $submittedMinutes = (int)$this->submittedDateTime->format('i');
+        $workDaysAmount = intdiv($estimatedTime, self::WORKING_HOURS_PER_DAY);
+        $remainHour = $estimatedTime % self::WORKING_HOURS_PER_DAY;
 
         while ($workDaysAmount > 0) {
-            $checkNextDayDateTime = (new DateTimeImmutable())::createFromMutable($calculateDate);
-
-            if ($this->isNextDayIsWeekendDay($checkNextDayDateTime)) {
+            if ($this->isNextDayIsWeekendDay($calculateDate)) {
                 $calculateDate->add(new \DateInterval('P3D'));
                 $workDaysAmount--;
                 continue;
@@ -201,23 +171,22 @@ class DateCalculateController extends Controller
             $workDaysAmount--;
         }
 
-        $checkWithRemainedTime = (new DateTimeImmutable())::createFromMutable($calculateDate);
+        $this->submittedDateTime = (new DateTimeImmutable())::createFromMutable($calculateDate);
+        $this->estimatedTime = $remainHour;
 
-        if ($remainHour && $this->canProblemSolvableSameDay($checkWithRemainedTime, $remainHour)) {
+        if ($remainHour && $this->canProblemSolvableSameDay()) {
             return $calculateDate->add(new \DateInterval('PT' . $remainHour . 'H'));
         }
 
-        $checkNextDayDateTime = (new DateTimeImmutable())::createFromMutable($calculateDate);
-
-        if ($this->isNextDayIsWeekendDay($checkNextDayDateTime)) {
-            $calculateDate->add(new \DateInterval('P3D'))->setTime(9, $submittedMinutes);
+        if ($this->isNextDayIsWeekendDay($calculateDate)) {
+            $calculateDate->add(new \DateInterval('P3D'))->setTime(self::STARTING_WORK_HOUR, $submittedMinutes);
         } else {
-            $calculateDate->add(new \DateInterval('P1D'))->setTime(9, $submittedMinutes);
+            $calculateDate->add(new \DateInterval('P1D'))->setTime(self::STARTING_WORK_HOUR, $submittedMinutes);
         }
 
         $remainHour = ($submittedHour + $remainHour) - self::FINISHING_WORK_HOUR;
 
-        if (empty($remainHour)) {
+        if (empty($remainHour) || $remainHour < 0) {
             return $calculateDate;
         }
 
@@ -235,7 +204,7 @@ class DateCalculateController extends Controller
     }
 
     /**
-     * @param DateTime|DateTimeImmutable $calculatedDate
+     * @param DateTimeImmutable|DateTime $calculatedDate
      */
     public function setCalculatedDate(DateTimeImmutable|DateTime $calculatedDate): void
     {
@@ -245,15 +214,15 @@ class DateCalculateController extends Controller
     /**
      * @return int
      */
-    public function getTurnaroundTime(): int
+    public function getEstimatedTime(): int
     {
-        return $this->turnaroundTime;
+        return $this->estimatedTime;
     }
 
     /**
-     * @return DateTime|DateTimeImmutable
+     * @return DateTimeImmutable
      */
-    public function getSubmittedDateTime(): DateTimeImmutable|DateTime
+    public function getSubmittedDateTime(): DateTimeImmutable
     {
         return $this->submittedDateTime;
     }

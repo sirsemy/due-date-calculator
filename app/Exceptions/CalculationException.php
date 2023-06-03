@@ -8,8 +8,7 @@ use Symfony\Component\HttpFoundation\Response as Response;
 
 class CalculationException extends Exception
 {
-    public function __construct(private ExceptionCase $errorCase,
-                                DateCalculateController $dc = new DateCalculateController())
+    public function __construct(private ExceptionCase $errorCase)
     {
         parent::__construct();
 
