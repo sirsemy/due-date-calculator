@@ -8,7 +8,6 @@ use App\Exceptions\CalculationException;
 use Illuminate\Validation\ValidationException;
 use App\Http\Helpers\CalculateTimeDemand;
 use DateTime;
-use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,8 +23,8 @@ class DateCalculateController extends Controller
     public const WORKING_HOURS_PER_DAY = 8;
 
     private JsonResponse $routeResponse;
-    private DateTimeImmutable|DateTime $calculatedDate;
-    private DateTimeImmutable $submittedDateTime;
+    private DateTime $calculatedDate;
+    private DateTime $submittedDateTime;
 
     private int $estimatedTime;
 
@@ -49,7 +48,7 @@ class DateCalculateController extends Controller
         $submittedDate = $request->input('submit_time');
         $this->estimatedTime = $request->input('estimated_time');
 
-        $this->submittedDateTime = (new DateTimeImmutable())::createFromFormat(self::DATE_TIME_FORMAT, $submittedDate);
+        $this->submittedDateTime = (new DateTime())::createFromFormat(self::DATE_TIME_FORMAT, $submittedDate);
 
         $paramsChecker->checkProblemReportedOnWorkingDays();
         $paramsChecker->checkProblemReportedDuringWorkingHours();
@@ -61,9 +60,6 @@ class DateCalculateController extends Controller
         return $this->routeResponse;
     }
 
-    /**
-     * @return void
-     */
     private function composeSuccessResponse(): void
     {
         $this->routeResponse = response()->json(['data' => [
@@ -71,42 +67,27 @@ class DateCalculateController extends Controller
         ]], \Symfony\Component\HttpFoundation\Response::HTTP_OK);
     }
 
-    /**
-     * @param DateTimeImmutable|DateTime $calculatedDate
-     */
-    public function setCalculatedDate(DateTimeImmutable|DateTime $calculatedDate): void
+    public function setCalculatedDate(DateTime $calculatedDate): void
     {
         $this->calculatedDate = $calculatedDate;
     }
 
-    /**
-     * @return int
-     */
     public function getEstimatedTime(): int
     {
         return $this->estimatedTime;
     }
 
-    /**
-     * @param int $estimatedTime
-     */
     public function setEstimatedTime(int $estimatedTime): void
     {
         $this->estimatedTime = $estimatedTime;
     }
 
-    /**
-     * @param DateTimeImmutable $submittedDateTime
-     */
-    public function setSubmittedDateTime(DateTimeImmutable $submittedDateTime): void
+    public function setSubmittedDateTime(DateTime $submittedDateTime): void
     {
         $this->submittedDateTime = $submittedDateTime;
     }
 
-    /**
-     * @return DateTimeImmutable
-     */
-    public function getSubmittedDateTime(): DateTimeImmutable
+    public function getSubmittedDateTime(): DateTime
     {
         return $this->submittedDateTime;
     }
