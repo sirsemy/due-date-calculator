@@ -120,7 +120,7 @@ class CalculateTimeDemand
         $futureDate = DateTime::createFromInterface($this->dateCalcContr->getSubmittedDateTime());
         $finishTime = DateTime::createFromInterface($this->dateCalcContr->getSubmittedDateTime());
 
-        $futureDate->add(new \DateInterval('PT' . $this->dateCalcContr->getEstimatedTime() . 'H'));
+        $futureDate = $this->addHours($futureDate, $this->dateCalcContr->getEstimatedTime());
         $finishTime->setTime($this->dateCalcContr::FINISHING_WORK_HOUR, 0);
 
         if ($futureDate > $finishTime) {
@@ -128,6 +128,14 @@ class CalculateTimeDemand
         }
 
         return true;
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function addHours(DateTime $dt, int $hours): DateTime
+    {
+        return $dt->add(new \DateInterval('PT' . $hours . 'H'));
     }
 
     /**
@@ -141,7 +149,7 @@ class CalculateTimeDemand
         $this->dateCalcContr->setEstimatedTime($remainHours);
 
         if ($remainHours && $this->canProblemSolvableSameDay()) {
-            $this->calculateDate->add(new \DateInterval('PT' . $remainHours . 'H'));
+            $this->addHours($this->calculateDate, $remainHours);
         } else {
             $this->setRemainHoursOnNextDay($remainHours);
         }
@@ -162,7 +170,7 @@ class CalculateTimeDemand
         $remainHours += $submittedHour - $this->dateCalcContr::FINISHING_WORK_HOUR;
 
         if (!empty($remainHours) && $remainHours > 0) {
-            $this->calculateDate->add(new \DateInterval('PT' . $remainHours . 'H'));
+            $this->addHours($this->calculateDate, $remainHours);
         }
     }
 }
