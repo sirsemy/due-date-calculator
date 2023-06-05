@@ -12,22 +12,41 @@ use Illuminate\Support\Facades\Log;
 
 class CalculateTimeDemand
 {
-    private DateCalculateController $calcContr;
+    private const NUMBER_OF_FRIDAY = 5;
 
+    private DateCalculateController $dateCalcContr;
+
+    /**
+     * @throws CalculationException
+     */
     public function __construct(DateCalculateController $dc)
     {
-        $this->calcContr = $dc;
+        $this->dateCalcContr = $dc;
+        $this->runCalculation();
+    }
+
+    /**
+     * @throws CalculationException
+     * @throws Exception
+     */
+    private function runCalculation(): void
+    {
+        if ($this->canProblemSolvableSameDay()) {
+            $this->calculateSameDayTime();
+        } else {
+            $this->calculateMultipleDaysTime();
+        }
     }
 
     /**
      * @throws CalculationException
      */
-    public function calculateSameDayTime(): void
+    private function calculateSameDayTime(): void
     {
         try {
-            $calcDate = $this->calcContr->getSubmittedDateTime()
-                ->add(new \DateInterval('PT' . $this->calcContr->getEstimatedTime() . 'H'));
-            $this->calcContr->setCalculatedDate($calcDate);
+            $calcDate = $this->dateCalcContr->getSubmittedDateTime()
+                ->add(new \DateInterval('PT' . $this->dateCalcContr->getEstimatedTime() . 'H'));
+            $this->dateCalcContr->setCalculatedDate($calcDate);
         } catch (Exception $e) {
             Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                 $e->getMessage());
@@ -38,11 +57,11 @@ class CalculateTimeDemand
     /**
      * @throws CalculationException
      */
-    public function calculateMultipleDaysTime(): void
+    private function calculateMultipleDaysTime(): void
     {
         try {
             $calcDate = $this->calculateMultipleWorkingDays();
-            $this->calcContr->setCalculatedDate($calcDate);
+            $this->dateCalcContr->setCalculatedDate($calcDate);
         } catch (Exception $e) {
             Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                 $e->getMessage());
@@ -55,15 +74,15 @@ class CalculateTimeDemand
      */
     private function calculateMultipleWorkingDays(): DateTime
     {
-        $estimatedTime = $this->calcContr->getEstimatedTime();
-        $calculateDate = (new DateTime())::createFromImmutable($this->calcContr->getSubmittedDateTime());
-        $submittedHour = (int)$this->calcContr->getSubmittedDateTime()->format('H');
-        $submittedMinutes = (int)$this->calcContr->getSubmittedDateTime()->format('i');
-        $workDaysAmount = intdiv($estimatedTime, $this->calcContr::WORKING_HOURS_PER_DAY);
-        $remainHour = $estimatedTime % $this->calcContr::WORKING_HOURS_PER_DAY;
+        $estimatedTime = $this->dateCalcContr->getEstimatedTime();
+        $calculateDate = (new DateTime())::createFromImmutable($this->dateCalcContr->getSubmittedDateTime());
+        $submittedHour = (int)$this->dateCalcContr->getSubmittedDateTime()->format('H');
+        $submittedMinutes = (int)$this->dateCalcContr->getSubmittedDateTime()->format('i');
+        $workDaysAmount = intdiv($estimatedTime, $this->dateCalcContr::WORKING_HOURS_PER_DAY);
+        $remainHour = $estimatedTime % $this->dateCalcContr::WORKING_HOURS_PER_DAY;
 
         while ($workDaysAmount > 0) {
-            if ($this->isNextDayIsWeekendDay($calculateDate)) {
+            if ($this->isFriday($calculateDate)) {
                 $calculateDate->add(new \DateInterval('P3D'));
                 $workDaysAmount--;
                 continue;
@@ -73,22 +92,24 @@ class CalculateTimeDemand
             $workDaysAmount--;
         }
 
-        $this->calcContr->setSubmittedDateTime(
+        $this->dateCalcContr->setSubmittedDateTime(
             (new DateTimeImmutable())::createFromMutable($calculateDate)
         );
-        $this->calcContr->setEstimatedTime($remainHour);
+        $this->dateCalcContr->setEstimatedTime($remainHour);
 
-        if ($remainHour && $this->calcContr->canProblemSolvableSameDay()) {
+        if ($remainHour && $this->canProblemSolvableSameDay()) {
             return $calculateDate->add(new \DateInterval('PT' . $remainHour . 'H'));
         }
 
-        if ($this->isNextDayIsWeekendDay($calculateDate)) {
-            $calculateDate->add(new \DateInterval('P3D'))->setTime($this->calcContr::STARTING_WORK_HOUR, $submittedMinutes);
+        if ($this->isFriday($calculateDate)) {
+            $calculateDate->add(new \DateInterval('P3D'))
+                ->setTime($this->dateCalcContr::STARTING_WORK_HOUR, $submittedMinutes);
         } else {
-            $calculateDate->add(new \DateInterval('P1D'))->setTime($this->calcContr::STARTING_WORK_HOUR, $submittedMinutes);
+            $calculateDate->add(new \DateInterval('P1D'))
+            ->setTime($this->dateCalcContr::STARTING_WORK_HOUR, $submittedMinutes);
         }
 
-        $remainHour = ($submittedHour + $remainHour) - $this->calcContr::FINISHING_WORK_HOUR;
+        $remainHour = ($submittedHour + $remainHour) - $this->dateCalcContr::FINISHING_WORK_HOUR;
 
         if (empty($remainHour) || $remainHour < 0) {
             return $calculateDate;
@@ -100,12 +121,29 @@ class CalculateTimeDemand
     /**
      * @throws Exception
      */
-    private function isNextDayIsWeekendDay(DateTime $dt): bool
+    private function isFriday(DateTime $dt): bool
     {
-        if ($dt->format($this->calcContr::WEEK_DAY_FORMAT) >= 5) {
+        if ($dt->format($this->dateCalcContr::WEEK_DAY_FORMAT) == self::NUMBER_OF_FRIDAY) {
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function canProblemSolvableSameDay(): bool
+    {
+        $summaDate = $this->dateCalcContr->getSubmittedDateTime()
+            ->add(new \DateInterval('PT' . $this->dateCalcContr->getEstimatedTime() . 'H'));
+        $finishTime = $this->dateCalcContr->getSubmittedDateTime()
+            ->setTime($this->dateCalcContr::FINISHING_WORK_HOUR, 0);
+
+        if ($summaDate > $finishTime) {
+            return false;
+        }
+
+        return true;
     }
 }

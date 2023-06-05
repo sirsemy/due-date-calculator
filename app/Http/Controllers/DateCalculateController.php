@@ -2,21 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use App\Exceptions\CalculationException;
 use App\Exceptions\ExceptionCase;
+use Illuminate\Validation\ValidationException;
 use App\Http\Helpers\CalculateTimeDemand;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
-use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\Routing\Annotation\Route;
 
 class DateCalculateController extends Controller
 {
+    private const NUMBER_OF_SATURDAY = 6;
+
     public const WEEK_DAY_FORMAT = 'N';
     public const HOUR_MINUTE_FORMAT = 'H:i';
     public const STARTING_WORK_HOUR = 9;
@@ -54,7 +56,9 @@ class DateCalculateController extends Controller
         $this->checkProblemReportedOnWorkingDays();
         $this->checkProblemReportedDuringWorkingHours();
 
-        $this->runCalculation();
+        (new CalculateTimeDemand($this));
+
+        $this->composeSuccessResponse();
 
         return $this->routeResponse;
     }
@@ -65,7 +69,7 @@ class DateCalculateController extends Controller
     private function validateParameters(Request $request): void
     {
         $validator = Validator::make($request->all(), [
-            'submit_time' => 'required|date|date_format:Y-m-d H:i:s',
+            'submit_time' => 'required|date|date_format:'.self::DATE_TIME_FORMAT,
             'estimated_time' => 'required|integer|min:1',
         ]);
 
@@ -81,7 +85,7 @@ class DateCalculateController extends Controller
     {
         $examineDay = (int)$this->submittedDateTime->format(self::WEEK_DAY_FORMAT);
 
-        if ($examineDay >= 6) {
+        if ($examineDay >= self::NUMBER_OF_SATURDAY) {
             throw new CalculationException(ExceptionCase::WeekendReport);
         }
     }
@@ -101,50 +105,6 @@ class DateCalculateController extends Controller
         if ($submittedTime < $startTime || $submittedTime > $finishTime) {
             throw new CalculationException(ExceptionCase::OutOfWorkingHours);
         }
-    }
-
-    /**
-     * @throws CalculationException
-     * @throws Exception
-     */
-    private function runCalculation(): void
-    {
-        $calculator = new CalculateTimeDemand($this);
-
-        if ($this->canProblemSolvableSameDay()) {
-            $calculator->calculateSameDayTime();
-        } else {
-            $calculator->calculateMultipleDaysTime();
-        }
-
-        $this->composeSuccessResponse();
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function canProblemSolvableSameDay(): bool
-    {
-        $summaDate = $this->submittedDateTime->add(new \DateInterval('PT' . $this->estimatedTime . 'H'));
-        $finishTime = $this->submittedDateTime->setTime(self::FINISHING_WORK_HOUR, 0);
-
-        if ($summaDate > $finishTime) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function isNextDayIsWeekendDay(DateTime $dt): bool
-    {
-        if ($dt->format(self::WEEK_DAY_FORMAT) >= 5) {
-            return true;
-        }
-
-        return false;
     }
 
     /**
