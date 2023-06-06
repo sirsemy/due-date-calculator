@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Helpers\MultipleDaysTimeCalculator;
-use App\Http\Helpers\SameDayTimeCalculator;
-use App\Http\Helpers\TimeDemandCalculator;
+use App\Http\Executors\MultipleDaysTimeCalculator;
+use App\Http\Executors\SameDayTimeCalculator;
+use App\Http\Executors\TimeDemandCalculator;
 use App\Http\Helpers\CheckSubmittedParams;
 use Exception;
 use App\Exceptions\CalculationException;

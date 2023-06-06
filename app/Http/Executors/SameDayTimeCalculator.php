@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Helpers;
+namespace App\Http\Executors;
 
 use App\Exceptions\CalculationException;
 use App\Exceptions\ExceptionCases;

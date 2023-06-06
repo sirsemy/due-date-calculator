@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Helpers;
+namespace App\Http\Executors;
 
 use App\Exceptions\CalculationException;
 use App\Exceptions\ExceptionCases;
+use App\Http\Helpers\TimeIncreaser;
 use DateTime;
 use Exception;
 use Illuminate\Support\Facades\Log;
