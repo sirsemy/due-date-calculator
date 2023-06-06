@@ -12,7 +12,11 @@ class TimeIncreaser
      */
     public static function addHours(DateTime $dt, int $hours): DateTime
     {
-        return $dt->add(new \DateInterval('PT' . $hours . 'H'));
+        return $dt->add(new \DateInterval(
+            config('formats.interval_time_start') .
+            $hours .
+            config('formats.hour_format')
+        ));
     }
 
     /**
@@ -21,9 +25,9 @@ class TimeIncreaser
     public static function addDays(DateTime $dt): void
     {
         if (self::isFriday($dt)) {
-            $dt->add(new \DateInterval('P3D'));
+            $dt->add(new \DateInterval(config('formats.interval_three_days')));
         } else {
-            $dt->add(new \DateInterval('P1D'));
+            $dt->add(new \DateInterval(config('formats.interval_one_day')));
         }
     }
 
@@ -32,8 +36,7 @@ class TimeIncreaser
      */
     private static function isFriday(DateTime $dt): bool
     {
-        if ($dt->format('N') == 5) {
-//        if ($dt->format($this->dateCalcContr::WEEK_DAY_FORMAT) == self::NUMBER_OF_FRIDAY) {
+        if ($dt->format(config('formats.week_day_format')) == config('formats.number_of_friday')) {
             return true;
         }
 

@@ -17,13 +17,6 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class DateCalculateController extends Controller
 {
-    private const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
-
-    public const WEEK_DAY_FORMAT = 'N';
-    public const STARTING_WORK_HOUR = 9;
-    public const FINISHING_WORK_HOUR = 17;
-    public const WORKING_HOURS_PER_DAY = 8;
-
     private JsonResponse $routeResponse;
     private DateTime $calculatedDate;
     private DateTime $submittedDateTime;
@@ -50,7 +43,7 @@ class DateCalculateController extends Controller
         $submittedDate = $request->input('submit_time');
         $this->estimatedTime = $request->input('estimated_time');
 
-        $this->submittedDateTime = (new DateTime())::createFromFormat(self::DATE_TIME_FORMAT, $submittedDate);
+        $this->submittedDateTime = (new DateTime())::createFromFormat(config('formats.date_time_format'), $submittedDate);
 
         $paramsChecker->checkProblemReportedOnWorkingDays();
         $paramsChecker->checkProblemReportedDuringWorkingHours();

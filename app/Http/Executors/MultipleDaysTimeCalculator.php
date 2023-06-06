@@ -30,7 +30,7 @@ class MultipleDaysTimeCalculator extends TimeDemandCalculator
     {
         $estimatedTime = $this->dateCalcContr->getEstimatedTime();
         $this->calculateDate = DateTime::createFromInterface($this->dateCalcContr->getSubmittedDateTime());
-        $workDaysAmount = intdiv($estimatedTime, $this->dateCalcContr::WORKING_HOURS_PER_DAY);
+        $workDaysAmount = intdiv($estimatedTime, config('formats.working_hours_per_day'));
 
         while ($workDaysAmount > 0) {
             TimeIncreaser::addDays($this->calculateDate);
@@ -47,7 +47,7 @@ class MultipleDaysTimeCalculator extends TimeDemandCalculator
      */
     private function setRemainHours(int $estimatedTime): void
     {
-        $remainHours = $estimatedTime % $this->dateCalcContr::WORKING_HOURS_PER_DAY;
+        $remainHours = $estimatedTime % config('formats.working_hours_per_day');
 
         $this->dateCalcContr->setSubmittedDateTime(DateTime::createFromInterface($this->calculateDate));
         $this->dateCalcContr->setEstimatedTime($remainHours);
@@ -69,9 +69,9 @@ class MultipleDaysTimeCalculator extends TimeDemandCalculator
 
         TimeIncreaser::addDays($this->calculateDate);
 
-        $this->calculateDate->setTime($this->dateCalcContr::STARTING_WORK_HOUR, $submittedMinutes);
+        $this->calculateDate->setTime(config('formats.starting_work_hour'), $submittedMinutes);
 
-        $remainHours += $submittedHour - $this->dateCalcContr::FINISHING_WORK_HOUR;
+        $remainHours += $submittedHour - config('formats.finishing_work_hour');
 
         if (!empty($remainHours) && $remainHours > 0) {
             TimeIncreaser::addHours($this->calculateDate, $remainHours);

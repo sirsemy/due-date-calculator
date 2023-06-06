@@ -16,7 +16,11 @@ class SameDayTimeCalculator extends TimeDemandCalculator
     {
         try {
             $calcDate = $this->dateCalcContr->getSubmittedDateTime()
-                ->add(new \DateInterval('PT' . $this->dateCalcContr->getEstimatedTime() . 'H'));
+                ->add(new \DateInterval(
+                    config('formats.interval_time_start') .
+                    $this->dateCalcContr->getEstimatedTime() .
+                    config('formats.hour_format')
+            ));
             $this->dateCalcContr->setCalculatedDate($calcDate);
         } catch (Exception $e) {
             Log::error('DateInterval not worked during calculate single working day. Error message: ' .

@@ -10,8 +10,6 @@ use Exception;
 
 abstract class TimeDemandCalculator
 {
-    protected const NUMBER_OF_FRIDAY = 5;
-
     protected DateCalculateController $dateCalcContr;
     protected DateTime $calculateDate;
 
@@ -38,7 +36,7 @@ abstract class TimeDemandCalculator
         $finishTime = DateTime::createFromInterface($dc->getSubmittedDateTime());
 
         $futureDate = TimeIncreaser::addHours($futureDate, $dc->getEstimatedTime());
-        $finishTime->setTime($dc::FINISHING_WORK_HOUR, 0);
+        $finishTime->setTime(config('formats.finishing_work_hour'), 0);
 
         if ($futureDate > $finishTime) {
             return false;

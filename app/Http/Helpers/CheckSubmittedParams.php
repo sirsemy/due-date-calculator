@@ -12,14 +12,6 @@ use Illuminate\Validation\ValidationException;
 
 class CheckSubmittedParams
 {
-    private const NUMBER_OF_SATURDAY = 6;
-    private const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
-
-    public const HOUR_MINUTE_FORMAT = 'H:i';
-    public const WEEK_DAY_FORMAT = 'N';
-    public const STARTING_WORK_HOUR = 9;
-    public const FINISHING_WORK_HOUR = 17;
-
     private DateCalculateController $dateCalcContr;
 
     public function __construct(DateCalculateController $dc)
@@ -33,7 +25,7 @@ class CheckSubmittedParams
     public function validateParameters(Request $request): void
     {
         $validator = Validator::make($request->all(), [
-            'submit_time' => 'required|date|date_format:'.self::DATE_TIME_FORMAT,
+            'submit_time' => 'required|date|date_format:'.config('formats.date_time_format'),
             'estimated_time' => 'required|integer|min:1',
         ]);
 
@@ -47,9 +39,9 @@ class CheckSubmittedParams
      */
     public function checkProblemReportedOnWorkingDays(): void
     {
-        $examineDay = (int)$this->dateCalcContr->getSubmittedDateTime()->format(self::WEEK_DAY_FORMAT);
+        $examineDay = (int)$this->dateCalcContr->getSubmittedDateTime()->format(config('formats.week_day_format'));
 
-        if ($examineDay >= self::NUMBER_OF_SATURDAY) {
+        if ($examineDay >= config('formats.number_of_saturday')) {
             throw new CalculationException(ExceptionCases::WeekendReport);
         }
     }
@@ -59,12 +51,12 @@ class CheckSubmittedParams
      */
     public function checkProblemReportedDuringWorkingHours(): void
     {
-        $submittedTime = $this->dateCalcContr->getSubmittedDateTime()->format(self::HOUR_MINUTE_FORMAT);
+        $submittedTime = $this->dateCalcContr->getSubmittedDateTime()->format(config('formats.hour_minute_format'));
 
-        $startTime = (new DateTime())->setTime(self::STARTING_WORK_HOUR, 0)
-            ->format(self::HOUR_MINUTE_FORMAT);
-        $finishTime = (new DateTime())->setTime(self::FINISHING_WORK_HOUR, 0)
-            ->format(self::HOUR_MINUTE_FORMAT);
+        $startTime = (new DateTime())->setTime(config('formats.starting_work_hour'), 0)
+            ->format(config('formats.hour_minute_format'));
+        $finishTime = (new DateTime())->setTime(config('formats.finishing_work_hour'), 0)
+            ->format(config('formats.hour_minute_format'));
 
         if ($submittedTime < $startTime || $submittedTime > $finishTime) {
             throw new CalculationException(ExceptionCases::OutOfWorkingHours);
