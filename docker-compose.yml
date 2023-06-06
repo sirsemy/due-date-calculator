@@ -1,0 +1,19 @@
+# For more information: https://laravel.com/docs/sail
+version: '3.7'
+services:
+    api:
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        image: due_date_calculator
+        container_name: due_date_calculator-api
+        ports:
+          - "80:80"
+        environment:
+            PHP_XDEBUG_MODE: 1
+            COMPOSER_PROCESS_TIMEOUT: 600
+            COMPOSER_MEMORY_LIMIT: '2G'
+        restart: unless-stopped
+        working_dir: /var/www/html/due_date_calculator
+        volumes:
+            - ./:/var/www/html/due_date_calculator
