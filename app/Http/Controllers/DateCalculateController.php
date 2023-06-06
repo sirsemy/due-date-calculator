@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Helpers\CalculateMultipleDaysTime;
+use App\Http\Helpers\CalculateSameDayTime;
+use App\Http\Helpers\CalculateTimeDemand;
+use App\Http\Helpers\TimeIncreaser;
 use App\Http\Helpers\CheckSubmittedParams;
 use Exception;
 use App\Exceptions\CalculationException;
 use Illuminate\Validation\ValidationException;
-use App\Http\Helpers\CalculateTimeDemand;
 use DateTime;
 use DateTimeInterface;
 use Illuminate\Http\JsonResponse;
@@ -53,11 +56,24 @@ class DateCalculateController extends Controller
         $paramsChecker->checkProblemReportedOnWorkingDays();
         $paramsChecker->checkProblemReportedDuringWorkingHours();
 
-        (new CalculateTimeDemand($this));
+        $this->calculate();
 
         $this->composeSuccessResponse();
 
         return $this->routeResponse;
+    }
+
+    /**
+     * @throws CalculationException
+     * @throws Exception
+     */
+    private function calculate()
+    {
+        if (CalculateTimeDemand::canProblemSolvableSameDay($this)) {
+            (new CalculateSameDayTime($this))->runCalculation();
+        } else {
+            (new CalculateMultipleDaysTime($this))->runCalculation();
+        }
     }
 
     private function composeSuccessResponse(): void
