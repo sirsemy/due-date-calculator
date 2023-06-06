@@ -3,11 +3,11 @@
 namespace App\Http\Helpers;
 
 use App\Exceptions\CalculationException;
-use App\Exceptions\ExceptionCase;
+use App\Exceptions\ExceptionCases;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class CalculateSameDayTime extends CalculateTimeDemand
+class SameDayTimeCalculator extends TimeDemandCalculator
 {
     /**
      * @throws CalculationException
@@ -21,7 +21,7 @@ class CalculateSameDayTime extends CalculateTimeDemand
         } catch (Exception $e) {
             Log::error('DateInterval not worked during calculate single working day. Error message: ' .
                 $e->getMessage());
-            throw new CalculationException(ExceptionCase::CalculationError);
+            throw new CalculationException(ExceptionCases::CalculationError);
         }
     }
 }

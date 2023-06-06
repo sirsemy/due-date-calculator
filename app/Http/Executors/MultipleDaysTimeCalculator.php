@@ -3,12 +3,12 @@
 namespace App\Http\Helpers;
 
 use App\Exceptions\CalculationException;
-use App\Exceptions\ExceptionCase;
+use App\Exceptions\ExceptionCases;
 use DateTime;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class CalculateMultipleDaysTime extends CalculateTimeDemand
+class MultipleDaysTimeCalculator extends TimeDemandCalculator
 {
     public function runCalculation(): void
     {
@@ -18,7 +18,7 @@ class CalculateMultipleDaysTime extends CalculateTimeDemand
         } catch (Exception $e) {
             Log::error('DateInterval not worked during calculate multiple working days. Error message: ' .
                 $e->getMessage());
-            throw new CalculationException(ExceptionCase::CalculationError);
+            throw new CalculationException(ExceptionCases::CalculationError);
         }
     }
 
@@ -51,7 +51,7 @@ class CalculateMultipleDaysTime extends CalculateTimeDemand
         $this->dateCalcContr->setSubmittedDateTime(DateTime::createFromInterface($this->calculateDate));
         $this->dateCalcContr->setEstimatedTime($remainHours);
 
-        if ($remainHours && CalculateTimeDemand::canProblemSolvableSameDay($this->dateCalcContr)) {
+        if ($remainHours && TimeDemandCalculator::canProblemSolvableSameDay($this->dateCalcContr)) {
             TimeIncreaser::addHours($this->calculateDate, $remainHours);
         } else {
             $this->setRemainHoursOnNextDay($remainHours);

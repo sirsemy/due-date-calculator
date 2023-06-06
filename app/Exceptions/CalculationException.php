@@ -2,20 +2,19 @@
 
 namespace App\Exceptions;
 
-use App\Http\Controllers\DateCalculateController;
 use Exception;
 use Symfony\Component\HttpFoundation\Response as Response;
 
 class CalculationException extends Exception
 {
-    public function __construct(private ExceptionCase $errorCase)
+    public function __construct(ExceptionCases $errorCase)
     {
         parent::__construct();
 
         match ($errorCase) {
-            ExceptionCase::CalculationError => $this->set400ErrorMessage(),
-            ExceptionCase::WeekendReport => $this->set405ErrorMessage("Report not allowed during weekend."),
-            ExceptionCase::OutOfWorkingHours => $this->set405ErrorMessage("Report not allowed out of working hours."),
+            ExceptionCases::CalculationError => $this->set400ErrorMessage(),
+            ExceptionCases::WeekendReport => $this->set405ErrorMessage("Report not allowed during weekend."),
+            ExceptionCases::OutOfWorkingHours => $this->set405ErrorMessage("Report not allowed out of working hours."),
         };
     }
 

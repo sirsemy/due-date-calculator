@@ -3,7 +3,7 @@
 namespace App\Http\Helpers;
 
 use App\Exceptions\CalculationException;
-use App\Exceptions\ExceptionCase;
+use App\Exceptions\ExceptionCases;
 use App\Http\Controllers\DateCalculateController;
 use DateTime;
 use Illuminate\Http\Request;
@@ -50,7 +50,7 @@ class CheckSubmittedParams
         $examineDay = (int)$this->dateCalcContr->getSubmittedDateTime()->format(self::WEEK_DAY_FORMAT);
 
         if ($examineDay >= self::NUMBER_OF_SATURDAY) {
-            throw new CalculationException(ExceptionCase::WeekendReport);
+            throw new CalculationException(ExceptionCases::WeekendReport);
         }
     }
 
@@ -67,7 +67,7 @@ class CheckSubmittedParams
             ->format(self::HOUR_MINUTE_FORMAT);
 
         if ($submittedTime < $startTime || $submittedTime > $finishTime) {
-            throw new CalculationException(ExceptionCase::OutOfWorkingHours);
+            throw new CalculationException(ExceptionCases::OutOfWorkingHours);
         }
     }
 }

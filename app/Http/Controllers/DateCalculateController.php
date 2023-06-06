@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Helpers\CalculateMultipleDaysTime;
-use App\Http\Helpers\CalculateSameDayTime;
-use App\Http\Helpers\CalculateTimeDemand;
-use App\Http\Helpers\TimeIncreaser;
+use App\Http\Helpers\MultipleDaysTimeCalculator;
+use App\Http\Helpers\SameDayTimeCalculator;
+use App\Http\Helpers\TimeDemandCalculator;
 use App\Http\Helpers\CheckSubmittedParams;
 use Exception;
 use App\Exceptions\CalculationException;
@@ -69,10 +68,10 @@ class DateCalculateController extends Controller
      */
     private function calculate()
     {
-        if (CalculateTimeDemand::canProblemSolvableSameDay($this)) {
-            (new CalculateSameDayTime($this))->runCalculation();
+        if (TimeDemandCalculator::canProblemSolvableSameDay($this)) {
+            (new SameDayTimeCalculator($this))->runCalculation();
         } else {
-            (new CalculateMultipleDaysTime($this))->runCalculation();
+            (new MultipleDaysTimeCalculator($this))->runCalculation();
         }
     }
 

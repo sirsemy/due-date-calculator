@@ -7,7 +7,7 @@ use App\Http\Controllers\DateCalculateController;
 use DateTime;
 use Exception;
 
-abstract class CalculateTimeDemand
+abstract class TimeDemandCalculator
 {
     protected const NUMBER_OF_FRIDAY = 5;
 

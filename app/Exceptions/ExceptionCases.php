@@ -2,7 +2,7 @@
 
 namespace App\Exceptions;
 
-enum ExceptionCase
+enum ExceptionCases
 {
     case WeekendReport;
     case OutOfWorkingHours;
